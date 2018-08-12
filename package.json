@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "A command line tool to setup new node.js projects",
   "repository": "https://github.com/rcpooley/rcp-init",
-  "main": "index.js",
   "keywords": [
     "init", "setup"
   ],
