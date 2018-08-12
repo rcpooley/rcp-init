@@ -1,0 +1,22 @@
+{
+  "name": "rcp-init",
+  "version": "1.0.0",
+  "description": "A command line tool to setup new node.js projects",
+  "repository": "https://github.com/rcpooley/rcp-init",
+  "main": "index.js",
+  "keywords": [
+    "init", "setup"
+  ],
+  "author": "rcpooley",
+  "license": "ISC",
+  "scripts": {
+    "start": "node cli.js"
+  },
+  "dependencies": {
+    "cross-spawn": "^6.0.5",
+    "inquirer": "^6.1.0",
+    "package-info": "^3.0.2",
+    "rxjs": "^6.2.2"
+  },
+  "bin": "cli.js"
+}
