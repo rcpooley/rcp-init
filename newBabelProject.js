@@ -34,12 +34,17 @@ async function cmd(cmd, print) {
 }
 
 async function version(pkg) {
+    if (pkg.startsWith('_')) pkg = pkg.substring(1);
     const info = await pkginfo(pkg);
     return '^' + info.version;
 }
 
 function getVersions(opts) {
     const deps = ['babel-cli', 'babel-preset-env', 'rimraf'];
+    if (opts.react) {
+        deps.push('parcel-bundler');
+        deps.push('_react', '_react-dom');
+    }
     if (opts.flow) {
         deps.push('babel-preset-flow', 'flow-bin');
         if (opts.publish) {
@@ -141,9 +146,36 @@ function mainjs(opts, cwd) {
     fs.writeFileSync(path.join(cwd, 'src', 'main.js'), "console.log('Hello world!');\n");
 }
 
+function reactStuff(opts, cwd) {
+    if (!opts.react) return;
+
+    fs.writeFileSync(path.join(cwd, 'src', 'index.jsx'), `import React from 'react';
+import ReactDOM from 'react-dom';
+
+ReactDOM.render(<div>Hello world</div>, document.getElementById('root'));
+
+// Hot Module Replacement
+if (module.hot) {
+  module.hot.accept();
+}`);
+
+    fs.mkdirSync(path.join(cwd, 'public'));
+
+    fs.writeFileSync(path.join(cwd, 'public', 'index.html'), `<html>
+<body>
+  <div id="root"></div>
+  <script src="../src/index.jsx"></script>
+</body>
+</html>
+`);
+}
+
 function gitignore(opts, cwd) {
     let content = `/node_modules/
 /dist/`;
+    if (opts.react) {
+        content += '\n/.cache/';
+    }
     fs.writeFileSync(path.join(cwd, '.gitignore'), content);
 }
 
@@ -186,6 +218,9 @@ async function newBabelProject(opts) {
     // .gitignore
     gitignore(opts, cwd);
 
+    // react stuff
+    reactStuff(opts, cwd);
+
     // Add dependencies
     console.log('Getting versions of dependencies');
     const versions = await versionProm;
@@ -194,12 +229,23 @@ async function newBabelProject(opts) {
 
     const json = JSON.parse(fs.readFileSync(packageJson, 'utf8'));
     if (!('devDependencies' in json)) json.devDependencies = {};
+    if (!('dependencies' in json)) json.dependencies = {};
     deps.forEach((dep, idx) => {
-        json.devDependencies[dep] = versions[idx];
+        if (dep.startsWith('_')) {
+            json.dependencies[dep.substring(1)] = versions[idx];
+        } else {
+            json.devDependencies[dep] = versions[idx];
+        }
     });
 
     if (!('scripts' in json)) json.scripts = {};
-    json.scripts.build = `rimraf ./dist && babel src/ ${opts.mocha ? 'test/ ' : ''}-d dist --copy-files`;
+
+    if (opts.react) {
+        json.scripts.build = 'parcel build src/index.jsx';
+        json.scripts.start = 'parcel public/index.html';
+    } else {
+        json.scripts.build = `rimraf ./dist && babel src/ ${opts.mocha ? 'test/ ' : ''}-d dist --copy-files`;
+    }
     if (opts.executable) {
         json.scripts.start = 'babel-watch --watch src src/main.js';
     }
@@ -220,6 +266,7 @@ async function newBabelProject(opts) {
     if (opts.mocha) {
         json.scripts.test = 'npm run build && mocha dist/**/*.test.js';
     }
+
     console.log('Writing dependencies to package.json');
     fs.writeFileSync(packageJson, JSON.stringify(json, null, 2));
 }

@@ -33,6 +33,11 @@ async function main() {
         return process.exit(0);
     }
 
+    const react = await prompt({
+        type: 'confirm',
+        message: 'Do you want to use react and parcel-bundler?'
+    });
+
     const flow = await prompt({
         type: 'confirm',
         message: 'Do you want to use flow for type checking?'
@@ -53,7 +58,7 @@ async function main() {
         message: 'Do you plan to publish this on npm?'
     });
 
-    const executable = await prompt({
+    const executable = react ? false : await prompt({
         type: 'list',
         message: 'Does this package execute or is it imported?',
         choices: [
@@ -65,6 +70,7 @@ async function main() {
     prompts.complete();
 
     await newBabelProject({
+        react,
         flow,
         eslint,
         mocha,
